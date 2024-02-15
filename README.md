@@ -15,5 +15,6 @@ Projeto de resposta ao desafio de programação nível 1 da Tunts.Rocks
 ## Para rodar
 ```
   npx http-server -p 8000
+  Acessar a página http://localhost:8000/
 ```
     
