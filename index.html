@@ -221,21 +221,12 @@
                 // TODO: use the array dynamically to get more than 3 grades if needed.
                 m_array[i] = ((parseInt(grades[0][i]) + parseInt(grades[1][i]) + parseInt(grades[2][i])) / 3) / 10;
                 
-                //console.log("grades[0][i] = " + grades[0][i]);
-                //console.log("grades[1][i] = " + grades[1][i]);
-                //console.log("grades[2][i] = " + grades[2][i]);
                 let x = (parseInt(grades[0][i]) + parseInt(grades[1][i]) + parseInt(grades[2][i])) / 3;
-                //console.log("x = " + x);
-                //console.log("x / 10 =" + x / 10);
 
                 if (m_array[i] >= MIN_GRADE) {
-                    //console.log("m_array[i] = " + m_array[i] + " >= " + MIN_GRADE);
                     statusArray[i] = STUDENT_STATUS.FINAL_EXAM;
-                    //console.log("statusArray[i] = STUDENT_STATUS.FINAL_EXAM;");
                     if (m_array[i] >= MIN_GRADE_APPROVED) { 
                         statusArray[i] = STUDENT_STATUS.APPROVED;
-                        //console.log("m_array[i] = " + m_array[i] + " >= " + MIN_GRADE_APPROVED);
-                        //console.log("statusArray[i] = STUDENT_STATUS.APPROVED;");
                     }
                 }
                 
