@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>DESAFIO DE PROGRAMAÇÃO Tunts.Rocks</title>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <p>PROCESSO SELETIVO – DESAFIO DE PROGRAMAÇÃO – NÍVEL 1</p>
+    <p>Tunts.Rocks</p>
+
+    <!--Add buttons to initiate auth sequence and sign out-->
+    <button id="authorize_button" onclick="handleAuthClick()">Authorize</button>
+    <button id="signout_button" onclick="handleSignoutClick()">Sign Out</button>
+    <button id="show_values_button" onclick="showValues()">Show Values</button>
+
+    <pre id="content" style="white-space: pre-wrap;"></pre>
+
+    <iframe src="https://docs.google.com/spreadsheets/d/e/2PACX-1vSahjMNl3pnvFNN3UzD9MOZjekwlsJUcYYOW5GqDgkp_Ve24LbICqW740H-H_SvRh5qYmAGxpa_WRPK/pubhtml?widget=true&amp;headers=false"></iframe>
+
+    <script type="text/javascript">    
+
+    const MAX_CLASSES_MISSING = 60;
+    const MAX_CLASSES_MISSING_PERCENTAGE = 0.25;
+    const MIN_GRADE = 5;
+    const MIN_GRADE_APPROVED = 7;
+    const STUDENT_STATUS = {
+        REPROVED_BY_GRADE: "Reprovado por nota",
+        FINAL_EXAM: "Exame Final",
+        APPROVED: "Aprovado",
+        REPROVED_CLASSES_MISSING: "Reprovado por falta"
+    }
+    const SPREADSHEET_ID = '1vU31NoPkMoi61vyXpbaw06VULLM1LFXFvdo9BzYgRP0';
+
+    ////////////////////////////////////////////////////////////////
+    // code obtained in the Google sample.
+    // https://developers.google.com/sheets/api/quickstart/js
+
+    // exported gapiLoaded
+    // exported gisLoaded
+    // exported handleAuthClick
+    // exported handleSignoutClick
+    // exported showValues
+
+    // Set to client ID and API key from the Developer Console
+    const CLIENT_ID = '295952844365-jjf8s0jjfn4jnqidvck59ribvth7q9fc.apps.googleusercontent.com';
+    const API_KEY = 'AIzaSyDSbIY1__VUuvB4s5Vrf9dFQntS0_5xp8k';
+
+    // Discovery doc URL for APIs used by the quickstart
+    const DISCOVERY_DOC = 'https://sheets.googleapis.com/$discovery/rest?version=v4';
+
+    // Authorization scopes required by the API; multiple scopes can be
+    // included, separated by spaces.
+    const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+
+    let tokenClient;
+    let gapiInited = false;
+    let gisInited = false;
+
+    document.getElementById('authorize_button').style.visibility = 'hidden';
+    document.getElementById('signout_button').style.visibility = 'hidden';
+
+    // Callback after api.js is loaded.
+    function gapiLoaded() {
+        gapi.load('client', initializeGapiClient);
+    }
+
+    // Callback after the API client is loaded. Loads the
+    // discovery doc to initialize the API.
+    async function initializeGapiClient() {
+        await gapi.client.init({
+            apiKey: API_KEY,
+            discoveryDocs: [DISCOVERY_DOC],
+        });
+        gapiInited = true;
+        maybeEnableButtons();
+    }
+
+    // Callback after Google Identity Services are loaded.
+    function gisLoaded() {
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID,
+            scope: SCOPES,
+            callback: '', // defined later
+        });
+        gisInited = true;
+        maybeEnableButtons();
+    }
+
+    // Enables user interaction after all libraries are loaded.
+    function maybeEnableButtons() {
+        if (gapiInited && gisInited) {
+            document.getElementById('authorize_button').style.visibility = 'visible';
+        }
+    }
+
+    // Sign in the user upon button click.
+    function handleAuthClick() {
+        tokenClient.callback = async (resp) => {
+            if (resp.error !== undefined) {
+            throw (resp);
+            }
+            document.getElementById('signout_button').style.visibility = 'visible';
+            document.getElementById('authorize_button').innerText = 'Refresh';
+        };
+
+        if (gapi.client.getToken() === null) {
+            // Prompt the user to select a Google Account and ask for consent to share their data
+            // when establishing a new session.
+            tokenClient.requestAccessToken({prompt: 'consent'});
+        } else {
+            // Skip display of account chooser and consent dialog for an existing session.
+            tokenClient.requestAccessToken({prompt: ''});
+        }
+    }
+
+    // Sign out the user upon button click.
+    function handleSignoutClick() {
+        const token = gapi.client.getToken();
+        if (token !== null) {
+            google.accounts.oauth2.revoke(token.access_token);
+            gapi.client.setToken('');
+            document.getElementById('content').innerText = '';
+            document.getElementById('authorize_button').innerText = 'Authorize';
+            document.getElementById('signout_button').style.visibility = 'hidden';
+        }
+    }
+    // end of code obtained in the Google sample.
+    ////////////////////////////////////////////////////////////////
+    
+    // code changed from Google sample.
+    // https://developers.google.com/sheets/api/quickstart/js 
+    //
+    /** Get the values in the specified range ordered by columns
+     * @param {string} spreadsheetId spreadsheet's ID
+     * @param {string} cellRange the range of cells in spreadsheet
+     */
+    async function getCellData(spreadsheetId, cellRange) {
+        let response;
+        try {
+            response = await gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: spreadsheetId,
+                range: cellRange,
+                majorDimension: "COLUMNS"
+            });
+        } catch (err) {
+            document.getElementById('content').innerText = err.message;
+            return;
+        }
+        const range = response.result;
+        if (!range || !range.values || range.values.length == 0) {
+            document.getElementById('content').innerText = 'No values found.';
+            return;
+        }
+        return response;
+    }
+
+    // code changed from Google sample.
+    // https://developers.google.com/sheets/api/quickstart/js 
+    //
+    /** Updates the values in the specified range ordered by columns
+     * @param {string} spreadsheetId spreadsheet's ID
+     * @param {string} cellRange the range of cells in spreadsheet
+     * @param {array} values to add
+     */
+    async function setCellData(spreadsheetId, cellRange, _values) {
+        const body = {
+            majorDimension: "COLUMNS",
+            range: cellRange,
+            values: _values,
+        };
+        let response;
+        try {
+            response =  await gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: spreadsheetId,
+                range: cellRange,
+                valueInputOption: "RAW",
+                resource: body
+            });
+        } catch (err) {
+            document.getElementById('content').innerText = err.message;
+            return;
+        }
+    }
+
+    /** Get the P1, P2 and P3 grades async in the spreadsheet.
+     * @returns {array} result containing P1, P2 and P3 grades.
+     */
+    async function getGrades(gradesArray) {
+        try {
+            
+            let result = [];
+
+            for (let i=0; i < gradesArray.length; i++) {
+                let data = await getCellData(SPREADSHEET_ID, gradesArray[i]);
+                result[i] = data.result.values[0];
+            }
+
+            return result;
+        }
+        catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    }
+
+    // Get student grades in a Google Sheet, calculate their final values and check their statuses.
+    // Then write the statuses and grades in the Google Sheet.
+    async function classifyStudents(gradesArray, classesMissingRange, statusCellRange, gradeForApprovalCellRange) {
+        try {
+            
+            let grades = await getGrades(gradesArray);
+            let classesMissingResult = await getCellData(SPREADSHEET_ID, classesMissingRange);
+            let classesMissing = classesMissingResult.result.values[0];
+            let m_array = [];
+            let statusArray = [];
+            let minimumGrade = [];
+
+            for (let i = 0; i < grades[0].length; i++) {
+                
+                statusArray[i] = STUDENT_STATUS.REPROVED_BY_GRADE;
+                
+                // TODO: use the array dynamically to get more than 3 grades if needed.
+                m_array[i] = ((parseInt(grades[0][i]) + parseInt(grades[1][i]) + parseInt(grades[2][i])) / 3) / 10;
+                
+                //console.log("grades[0][i] = " + grades[0][i]);
+                //console.log("grades[1][i] = " + grades[1][i]);
+                //console.log("grades[2][i] = " + grades[2][i]);
+                let x = (parseInt(grades[0][i]) + parseInt(grades[1][i]) + parseInt(grades[2][i])) / 3;
+                //console.log("x = " + x);
+                //console.log("x / 10 =" + x / 10);
+
+                if (m_array[i] >= MIN_GRADE) {
+                    //console.log("m_array[i] = " + m_array[i] + " >= " + MIN_GRADE);
+                    statusArray[i] = STUDENT_STATUS.FINAL_EXAM;
+                    //console.log("statusArray[i] = STUDENT_STATUS.FINAL_EXAM;");
+                    if (m_array[i] >= MIN_GRADE_APPROVED) { 
+                        statusArray[i] = STUDENT_STATUS.APPROVED;
+                        //console.log("m_array[i] = " + m_array[i] + " >= " + MIN_GRADE_APPROVED);
+                        //console.log("statusArray[i] = STUDENT_STATUS.APPROVED;");
+                    }
+                }
+                
+                if (statusArray[i] == STUDENT_STATUS.FINAL_EXAM) {
+                    // The formula gived was 5 <= (m + grade for approval)/2
+                    // it translates to 10 - m. Then round up to 1 decimal place.
+                    minimumGrade[i] = Math.ceil((10 - m_array[i]) * 10) / 10; 
+                } else {
+                    minimumGrade[i] = 0;
+                }
+
+                // If student misses this percentage of classes they will be reproved.
+                if (classesMissing[i] > MAX_CLASSES_MISSING * MAX_CLASSES_MISSING_PERCENTAGE) {
+                    statusArray[i] = STUDENT_STATUS.REPROVED_CLASSES_MISSING;
+                }
+            } 
+
+            document.getElementById('content').innerText = 'Dados atualizados com sucesso!';
+
+            await setCellData(SPREADSHEET_ID, statusCellRange, [statusArray]);
+            await setCellData(SPREADSHEET_ID, gradeForApprovalCellRange, [minimumGrade]);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    }
+
+    async function showValues() {
+
+        let p1CellRange = "D4:D27";
+        let p2CellRange = "E4:E27";
+        let p3CellRange = "F4:F27";
+        let classesMissingRange = "C4:C27";
+        let statusCellRange = "G4:G27";
+        let gradeForApprovalCellRange = "H4:H27";
+
+        await classifyStudents([p1CellRange, p2CellRange, p3CellRange], classesMissingRange, statusCellRange, gradeForApprovalCellRange);
+    }
+    </script>
+    <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
+    <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+    
+  </body>
+</html>
